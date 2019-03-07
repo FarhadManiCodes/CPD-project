@@ -201,6 +201,7 @@ class simpar_t {
         posY = y*ncside;
         position = posY*ncside + posX;
         cell[position].set_particle(i);
+        cell[position].mass += mass;
         cell[position].tempX += mass*x;
         cell[position].tempY += mass*y;
       

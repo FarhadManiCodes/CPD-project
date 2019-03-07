@@ -85,8 +85,12 @@ int main(int argc, char *argv[]) {
       
     }
     
-    for(int i = 0; i < numberOfSideCells*numberOfSideCells; i++)
+    for(int i = 0; i < numberOfSideCells*numberOfSideCells; i++){
       cell_ptr[i].particlesInCell.clear();
+      cell_ptr[i].mass = 0;
+      cell_ptr[i].tempX;
+      cell_ptr[i].tempY;
+    }
     
 
   }
