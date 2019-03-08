@@ -77,11 +77,11 @@ int main(int argc, char *argv[]) {
     if(lastStep){
       
       cout << fixed;
-      cout << setprecision(2);
+      cout << setprecision(5);
       cout << particle_ptr[0].x  << " " << particle_ptr[0].y << std::endl; 
     
       cout << fixed;
-      cout << setprecision(2);
+      cout << setprecision(5);
       cout << overall_ptr[0].tempX / overall_ptr[0].mass  << " " << overall_ptr[0].tempY / overall_ptr[0].mass << std::endl;
       
     }
@@ -96,8 +96,8 @@ int main(int argc, char *argv[]) {
     
 
   }
-  
-  
+  cout << fixed;
+  cout << setprecision(3);
   time_req = clock()- time_req;
   cout << "It took " << (float)time_req/CLOCKS_PER_SEC << " seconds" << endl;
   

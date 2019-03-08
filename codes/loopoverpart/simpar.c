@@ -327,12 +327,12 @@ int main ( int argc , char* argv [ argc +1]) {
     } //end of loop to gain total center of mass
     TotalCenter_x/= total_mass;
     TotalCenter_y/= total_mass;
-    printf("%.2f %.2f \n",par[0].x,par[0].y);
-    printf("%.2f %.2f \n",TotalCenter_x,TotalCenter_y);
+    printf("%.5f %.5f \n",par[0].x,par[0].y);
+    printf("%.5f %.5f \n",TotalCenter_x,TotalCenter_y);
     //----------------------------------------------------------------------------------
     end = clock();
     double time_spent = ((double) (end - start)) / CLOCKS_PER_SEC;
     //---------------------------------------------------------------------------------
-    printf("It took %.4f seconds\n",time_spent);
+    printf("It took %.3f seconds\n",time_spent);
     return EXIT_SUCCESS;
 }  /* main */
