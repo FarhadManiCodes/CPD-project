@@ -60,20 +60,21 @@ int main(int argc, char *argv[]) {
   //Create cell Neighbourhood for each cell
   simpar.init_NeighbourCells(numberOfSideCells, cell_ptr);
   
-
+  bool lastStep = false;
   for(int step=0; step<numberOfTimeSteps; step++){
+    
+    if (step == numberOfTimeSteps-1)
+      lastStep = true;
+    
          
     //Assign particles to each cell and compute Cell Mass
-    simpar.computeParticlesAndMassCenterInEachCell(numberOfSideCells, numberOfParticles, particle_ptr, cell_ptr);
+    simpar.computeParticlesAndMassCenterInEachCell(numberOfSideCells, numberOfParticles, particle_ptr, cell_ptr, overall_ptr, lastStep);
   
     //Compute Force, Velocities and New Positions
     simpar.computeForceAndPositions(numberOfSideCells, particle_ptr, cell_ptr);
     
   
-    if (step == numberOfTimeSteps-1){
-      
-      //Compute overall center of Mass and it's Position
-      computeOverallCenterOfMassPositionAndMass(numberOfParticles, particle_ptr, overall_ptr);
+    if(lastStep){
       
       cout << fixed;
       cout << setprecision(2);
@@ -81,15 +82,16 @@ int main(int argc, char *argv[]) {
     
       cout << fixed;
       cout << setprecision(2);
-      cout << overall_ptr[0].centerOfMass_X  << " " << overall_ptr[0].centerOfMass_Y << std::endl;
+      cout << overall_ptr[0].tempX / overall_ptr[0].mass  << " " << overall_ptr[0].tempY / overall_ptr[0].mass << std::endl;
       
     }
     
+    //Clean Data
     for(int i = 0; i < numberOfSideCells*numberOfSideCells; i++){
       cell_ptr[i].particlesInCell.clear();
       cell_ptr[i].mass = 0;
-      cell_ptr[i].tempX;
-      cell_ptr[i].tempY;
+      cell_ptr[i].tempX = 0;
+      cell_ptr[i].tempY = 0;
     }
     
 
@@ -97,7 +99,7 @@ int main(int argc, char *argv[]) {
   
   
   time_req = clock()- time_req;
-	cout << "It took " << (float)time_req/CLOCKS_PER_SEC << " seconds" << endl;
+  cout << "It took " << (float)time_req/CLOCKS_PER_SEC << " seconds" << endl;
   
   
   

@@ -81,8 +81,8 @@ class overall_t {
     ~overall_t(){};
     
     double mass;
-    double centerOfMass_X;
-    double centerOfMass_Y;
+    double tempX;
+    double tempY;
     
 };
 
@@ -99,26 +99,6 @@ void init_particles(long seed, long ncside, long long n_part, particle_t *par)
         par[i].vy = RND0_1 / ncside / 10.0;
         par[i].m = RND0_1 * ncside / (G * 1e6 * n_part);
     }
-};
-
-void computeOverallCenterOfMassPositionAndMass(int n_part, particle_t *par, overall_t *overall) {
-
-    double overallMass = 0.0;
-    double tempX = 0.0;
-    double tempY = 0.0;
-    
-    for(int i = 0; i < n_part; i++){
-      
-      overallMass += par[i].m;
-      tempX += par[i].m * par[i].x;
-      tempY += par[i].m * par[i].y;
-      
-    }
-        
-    overall->mass = overallMass;
-    overall->centerOfMass_X = tempX/overallMass;
-    overall->centerOfMass_Y = tempY/overallMass;
-      
 };
 
 
@@ -187,7 +167,8 @@ class simpar_t {
       }
     };
     
-    void computeParticlesAndMassCenterInEachCell(int ncside, int n_part, particle_t *par, cell_t *cell) {
+    
+    void computeParticlesAndMassCenterInEachCell(int ncside, int n_part, particle_t *par, cell_t *cell, overall_t *overall, bool lastStep) {
       
       double x, y, mass;
       int posX, posY, position;
@@ -204,6 +185,12 @@ class simpar_t {
         cell[position].mass += mass;
         cell[position].tempX += mass*x;
         cell[position].tempY += mass*y;
+        
+        if(lastStep){
+          overall->mass += mass;
+          overall->tempX += mass*x;
+          overall->tempY += mass*y;
+        }
       
       }
     };
