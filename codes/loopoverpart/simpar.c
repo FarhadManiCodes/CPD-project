@@ -2,6 +2,7 @@
 # include <stdlib.h>
 # include <stddef.h>
 #include <math.h>
+#include <time.h>
 //------------------------------------------------------------------------------
 #define RND0_1 ((double) random() / ((long long)1<<31))
 #define G 6.67408e-11
@@ -229,6 +230,9 @@ int main ( int argc , char* argv [ argc +1]) {
     n_part = atol(argv[3]); //  number of particles
     ntstep = atol(argv[4]); //  number of time steps
     //--------------------------------------------------------------------------
+    clock_t start, end;  // to calculate the time
+    start = clock();
+    //--------------------------------------------------------------------------
     particle_t par[n_part];
     cell_t cell[ncside][ncside];
     //--------------------------------------------------------------------------
@@ -325,5 +329,10 @@ int main ( int argc , char* argv [ argc +1]) {
     TotalCenter_y/= total_mass;
     printf("%.2f %.2f \n",par[0].x,par[0].y);
     printf("%.2f %.2f \n",TotalCenter_x,TotalCenter_y);
+    //----------------------------------------------------------------------------------
+    end = clock();
+    double time_spent = ((double) (end - start)) / CLOCKS_PER_SEC;
+    //---------------------------------------------------------------------------------
+    printf("It took %.4f seconds\n",time_spent);
     return EXIT_SUCCESS;
 }  /* main */
