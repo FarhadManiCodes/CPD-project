@@ -343,10 +343,10 @@ class simpar_t {
           
         } //particlesInCell
         
-        cell[i].particlesInCell.clear();
-        cell[i].mass = 0;
-        cell[i].tempX = 0;
-        cell[i].tempY = 0;
+//         cell[i].particlesInCell.clear();
+//         cell[i].mass = 0;
+//         cell[i].tempX = 0;
+//         cell[i].tempY = 0;
         
       } //Number of Cells
     };

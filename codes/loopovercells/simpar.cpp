@@ -72,7 +72,14 @@ int main(int argc, char *argv[]) {
     //Compute Force, Velocities and New Positions
     simpar.computeForceAndPositions(numberOfSideCells, particle_ptr, cell_ptr, overall_ptr, lastStep);
     
-  
+    //Clear Data
+    for(int i = 0; i < numberOfSideCells*numberOfSideCells; i++){
+      cell_ptr[i].particlesInCell.clear();
+      cell_ptr[i].mass = 0;
+      cell_ptr[i].tempX = 0;
+      cell_ptr[i].tempY = 0;
+    }
+    
     if (lastStep){
       
       cout << fixed;
