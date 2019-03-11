@@ -152,7 +152,7 @@ void calcforce(unsigned long ci,unsigned long cj,unsigned long ncside,double xp,
         }
         else{    // cj == 0 //if the particle is in the bottom edge
             cjp1 = cj+1;
-            cim1 = ncside-1;
+            cjm1 = ncside-1;
             wb = 1.0;
             }
         //----------------------------------------------------------------------
