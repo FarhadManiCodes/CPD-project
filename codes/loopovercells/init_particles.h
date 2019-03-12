@@ -168,7 +168,7 @@ class simpar_t {
     };
     
     
-    void computeParticlesAndMassCenterInEachCell(int ncside, int n_part, particle_t *par, cell_t *cell, overall_t *overall, bool lastStep) {
+    void computeParticlesAndMassCenterInEachCell(int ncside, int n_part, particle_t *par, cell_t *cell) {
       
       double x, y, mass;
       int posX, posY, position;
@@ -185,18 +185,91 @@ class simpar_t {
         cell[position].mass += mass;
         cell[position].tempX += mass*x;
         cell[position].tempY += mass*y;
-        
-        if(lastStep){
-          overall->mass += mass;
-          overall->tempX += mass*x;
-          overall->tempY += mass*y;
-        }
       
       }
     };
-
     
-    void computeForceAndPositions(int ncside, particle_t *par, cell_t *cell) {
+//     void computeForce(int cellId, cell_t *cell, particle_t *par, int parID, double particleMass, double particleX, double particleY ){
+//       
+//       
+//       for (std::vector<int>::const_iterator neighbourCellIt = cell[cellId].neighbourCells.begin(); neighbourCellIt != cell[cellId].neighbourCells.end(); ++neighbourCellIt){
+//         
+//         double dX, dY, f;
+//         double currentDistanceSquared, currentDistance;
+//         double massOfCell, centerOfMassX, centerOfMassY;
+//         
+//             
+//         if (cell[*neighbourCellIt].particlesInCell.size() != 0){
+//         
+//           massOfCell = cell[*neighbourCellIt].mass;
+//           centerOfMassX = cell[*neighbourCellIt].tempX / massOfCell ;
+//           centerOfMassY = cell[*neighbourCellIt].tempY / massOfCell ;
+//           
+//           dX = centerOfMassX-particleX;
+//           dY = centerOfMassY-particleY;
+//           currentDistanceSquared = (dX)*(dX) + (dY)*(dY);
+//           currentDistance = sqrt(currentDistanceSquared);
+//         
+//           
+//           if (currentDistanceSquared < EPSLON)
+//             continue;
+//           else
+//             f = G*particleMass*massOfCell/currentDistanceSquared;
+//             
+//           
+//           par[parID].fx += f * dX / currentDistance;
+//           par[parID].fy += f * dY / currentDistance;
+//           
+//         }
+//         
+//       }
+//     };
+      
+      
+      
+//     void computeForceAndPositions(int ncside, particle_t *par, cell_t *cell) {
+// 
+//       int numberofCells = ncside*ncside;
+//       double particleMass, particleX, particleY;
+//       
+//       for(int i = 0; i < numberofCells; i++){
+// 
+//         for (std::vector<int>::const_iterator particleIt = cell[i].particlesInCell.begin(); particleIt != cell[i].particlesInCell.end(); ++particleIt){
+//           particleMass = par[*particleIt].m;
+//           particleX = par[*particleIt].x;
+//           particleY = par[*particleIt].y;
+//           
+//           par[*particleIt].fx = 0;
+//           par[*particleIt].fy = 0;
+//           
+//           computeForce(i, cell, par, *particleIt, particleMass, particleX, particleY);
+//           
+//           par[*particleIt].ax = par[*particleIt].fx / par[*particleIt].m;
+//           par[*particleIt].ay = par[*particleIt].fy / par[*particleIt].m ;
+//           
+//           par[*particleIt].vx = par[*particleIt].vx + par[*particleIt].ax * 1;
+//           par[*particleIt].vy = par[*particleIt].vy + par[*particleIt].ay * 1;
+//           
+//           par[*particleIt].x = par[*particleIt].x + (par[*particleIt].vx*1) + (0.5*par[*particleIt].ax*1*1);
+//           par[*particleIt].y = par[*particleIt].y + (par[*particleIt].vy*1) + (0.5*par[*particleIt].ay*1*1);
+//           
+//           if (par[*particleIt].x > 1.0)
+//             par[*particleIt].x = par[*particleIt].x - 1.0;
+//           else if (par[*particleIt].x < 0)
+//             par[*particleIt].x = par[*particleIt].x + 1.0;
+//           
+//           if (par[*particleIt].y > 1.0)
+//             par[*particleIt].y = par[*particleIt].y - 1.0;
+//           else if (par[*particleIt].y < 0)
+//             par[*particleIt].y = par[*particleIt].y + 1.0;
+//           
+//           
+//         }
+//       }
+//     };    
+     
+    
+    void computeForceAndPositions(int ncside, particle_t *par, cell_t *cell, overall_t *overall, bool lastStep) {
 
       int numberofCells = ncside*ncside;
       double particleMass, particleX, particleY;
@@ -262,20 +335,24 @@ class simpar_t {
             par[*particleIt].y = par[*particleIt].y + 1.0;
           
           
-        }
-      }
+          if(lastStep){
+            overall->mass += particleMass;
+            overall->tempX += particleMass * par[*particleIt].x;
+            overall->tempY += particleMass * par[*particleIt].y;
+          }
+          
+        } //particlesInCell
+        
+//         cell[i].particlesInCell.clear();
+//         cell[i].mass = 0;
+//         cell[i].tempX = 0;
+//         cell[i].tempY = 0;
+        
+      } //Number of Cells
     };
     
 };
 
-
-// extern void init_particles(long seed, long ncside, long long n_part, particle_t *par);
-// extern void computeParticlesAndMassCenterInEachCell(int ncside, int n_part, particle_t *par, cell_t *cell);
-// extern void init_NeighbourCells(int ncside, cell_t *cell);
-// extern void computeCenterOfMassPositionAndMassPerEachCell(int ncside, particle_t *par, cell_t *cell);
-// extern void computeOverallCenterOfMassPositionAndMass(int n_part, particle_t *par, overall_t *overall);
-// extern void computeForceAndPositions(int ncside, particle_t *par, cell_t *cell);
-// extern void computeAccelerationAndVelocityAndDisplacement(int ncside, particle_t *par, cell_t *cell, double dt);
 
 
 // /*LBLAS OPERATORS */

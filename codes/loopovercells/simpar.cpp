@@ -66,15 +66,21 @@ int main(int argc, char *argv[]) {
     if (step == numberOfTimeSteps-1)
       lastStep = true;
     
-         
     //Assign particles to each cell and compute Cell Mass
-    simpar.computeParticlesAndMassCenterInEachCell(numberOfSideCells, numberOfParticles, particle_ptr, cell_ptr, overall_ptr, lastStep);
+    simpar.computeParticlesAndMassCenterInEachCell(numberOfSideCells, numberOfParticles, particle_ptr, cell_ptr);
   
     //Compute Force, Velocities and New Positions
-    simpar.computeForceAndPositions(numberOfSideCells, particle_ptr, cell_ptr);
+    simpar.computeForceAndPositions(numberOfSideCells, particle_ptr, cell_ptr, overall_ptr, lastStep);
     
-  
-    if(lastStep){
+    //Clear Data
+    for(int i = 0; i < numberOfSideCells*numberOfSideCells; i++){
+      cell_ptr[i].particlesInCell.clear();
+      cell_ptr[i].mass = 0;
+      cell_ptr[i].tempX = 0;
+      cell_ptr[i].tempY = 0;
+    }
+    
+    if (lastStep){
       
       cout << fixed;
       cout << setprecision(5);
@@ -86,15 +92,6 @@ int main(int argc, char *argv[]) {
       
     }
     
-    //Clean Data
-    for(int i = 0; i < numberOfSideCells*numberOfSideCells; i++){
-      cell_ptr[i].particlesInCell.clear();
-      cell_ptr[i].mass = 0;
-      cell_ptr[i].tempX = 0;
-      cell_ptr[i].tempY = 0;
-    }
-    
-
   }
   cout << fixed;
   cout << setprecision(3);
