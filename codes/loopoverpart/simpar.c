@@ -16,8 +16,8 @@ struct particle_t {
   double vx;    // velocity of the particle in x direction
   double vy;    // velocity of the particle in y direction
   double m;     // mass of the particle
-  unsigned long c_i; // particle's cell index 1 (row index)
-  unsigned long c_j; // particle's cell index 2 (column index)
+  long c_i; // particle's cell index 1 (row index)
+  long c_j; // particle's cell index 2 (column index)
 };
 //-----------------cell sturucture definnition ---------------------------------
 typedef struct cell_t cell_t;
@@ -41,7 +41,7 @@ struct cell_t {
  *              pointer to struct cell
  */
 void init_particles(long seed, long ncside, long long n_part, particle_t *par, cell_t cell[][ncside]){
-    unsigned long long i;
+    long long i;
     srandom(seed);
     double Mass_Cell_local[ncside][ncside];
     Mass_Cell_local[ncside][ncside] = 0.0;
@@ -57,8 +57,8 @@ void init_particles(long seed, long ncside, long long n_part, particle_t *par, c
         //--------------------------------------------------------------------
         par[i].m = RND0_1 * ncside / (G * 1e6 * n_part);
         //======================== added code ===================================
-        unsigned long ci = par[i].x*ncside;
-        unsigned long cj = par[i].y*ncside;
+        long ci = par[i].x*ncside;
+        long cj = par[i].y*ncside;
         //--------------------------------------------------------------------
         Mass_Cell_local[ci][cj]+=par[i].m;
         //--------------------------------------------------------------------
@@ -96,7 +96,7 @@ void init_particles(long seed, long ncside, long long n_part, particle_t *par, c
  *              Fx,Fy forces acting on the particle
  *              pointer to struct cell
  */
-void calcforce(unsigned long ci,unsigned long cj,unsigned long ncside,double xp,double yp,double m,double *Fx,double *Fy,cell_t cell[][ncside]){
+void calcforce(long ci,long cj,long ncside,double xp,double yp,double m,double *Fx,double *Fy,cell_t cell[][ncside]){
     double Fx_local = 0.0,Fy_local=0.0;
         /*
         Fx_local,Fy_local force in (x,y) direction
@@ -112,7 +112,7 @@ void calcforce(unsigned long ci,unsigned long cj,unsigned long ncside,double xp,
         //----------------------------------------------------------------------
         //------------- calculating indexes of neighbour cells -----------------
         //----------------------------------------------------------------------
-        unsigned long cip1,cim1,cjp1,cjm1;
+        long cip1,cim1,cjp1,cjm1;
         /*
         ci,cj, : cell index of associated to current particle
         cip1: ci+1
@@ -227,7 +227,7 @@ int main ( int argc , char* argv [ argc +1]) {
     //--------------------------------------------------------------------------
     seed = atol(argv[1]);   //  seed for the random number generator
     ncside = atol(argv[2]); //  size of the grid (number of cells on the side)
-    n_part = atol(argv[3]); //  number of particles
+    n_part = atoll(argv[3]); //  number of particles
     ntstep = atol(argv[4]); //  number of time steps
     //--------------------------------------------------------------------------
     clock_t start, end;  // to calculate the time
@@ -239,7 +239,7 @@ int main ( int argc , char* argv [ argc +1]) {
     init_particles(seed, ncside, n_part, par,cell); // initilization
     //--------------------------------------------------------------------------
     size_t t_step,j,k;
-    unsigned long long i;
+    long long i;
     for(t_step = 0; t_step < ntstep; t_step++) { // loop over time
         double Mass_Cell_local[ncside][ncside];
         double CX_local[ncside][ncside];
@@ -252,8 +252,8 @@ int main ( int argc , char* argv [ argc +1]) {
             }
         }// End of initilize the mass of the cells for each time step
         for(i = 0; i < n_part; i++) { // loop over particles
-            unsigned long ci=par[i].c_i; //cell index i
-            unsigned long cj=par[i].c_j; //cell index j
+            long ci=par[i].c_i; //cell index i
+            long cj=par[i].c_j; //cell index j
             double xp = par[i].x; // x of the particle
             double yp = par[i].y; // y of the particel
             double m = par[i].m;  // mass of the particle
@@ -282,7 +282,7 @@ int main ( int argc , char* argv [ argc +1]) {
             par[i].vy+=ay;   // update the velocity in y direction
             par[i].y+=par[i].vy+0.5*ay; // update the position in y direction
             if (par[i].y > 1){
-                par[i].y-= (int)par[i].x; // correct the position( if it pass the top edge)
+                par[i].y-= (int)par[i].y; // correct the position( if it pass the top edge)
             }
             else if (par[i].y < 0){
                 par[i].y+= (int)par[i].y+1;//correct the position( if it pass the bottom edge)
@@ -309,7 +309,7 @@ int main ( int argc , char* argv [ argc +1]) {
                 if (Mass_Cell_local[j][k] > __DBL_EPSILON__){
                     cell[j][k].cx = CX_local[j][k]/Mass_Cell_local[j][k];
                     cell[j][k].cy = CY_local[j][k]/Mass_Cell_local[j][k];
-                }
+                }xs
                 else{
                     cell[j][k].cx = (j+0.5)/ncside;
                     cell[j][k].cy = (k+0.5)/ncside;
