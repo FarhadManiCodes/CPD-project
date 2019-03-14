@@ -309,7 +309,7 @@ int main ( int argc , char* argv [ argc +1]) {
                 if (Mass_Cell_local[j][k] > __DBL_EPSILON__){
                     cell[j][k].cx = CX_local[j][k]/Mass_Cell_local[j][k];
                     cell[j][k].cy = CY_local[j][k]/Mass_Cell_local[j][k];
-                }xs
+                }
                 else{
                     cell[j][k].cx = (j+0.5)/ncside;
                     cell[j][k].cy = (k+0.5)/ncside;
