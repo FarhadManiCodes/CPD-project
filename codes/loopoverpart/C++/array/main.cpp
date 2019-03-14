@@ -1,6 +1,6 @@
 #include <iostream>
 #include <stdlib.h>
-#include <vector>
+//#include <vector>
 #include <ctime>
 #include "funcDef.h"
 

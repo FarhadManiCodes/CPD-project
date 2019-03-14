@@ -2,7 +2,7 @@
 #include <stdlib.h>
 //#include <stddef.h>
 #include <cmath>
-#include <vector>
+//#include <vector>
 
 // Global consts
 //#define RND0_1 ((double)random() / ((long long)1 << 31))
