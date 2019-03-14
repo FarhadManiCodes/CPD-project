@@ -265,7 +265,7 @@ void update_velocities_and_positions(unsigned long i, double Fx, double Fy, vect
   double ay = Fy / par[i].m; // calculate the acceleration in y direction
 
   // Update velocities and positions in "x" direction
-  par[i].vx += Fx / par[i].m;
+  par[i].vx += ax;
   par[i].x += par[i].vx + 0.5 * ax;
 
   // Correct the "x" position
