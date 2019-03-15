@@ -42,22 +42,20 @@ public:
  *              par: vector containing all particles
  *              cell: matrix containing
  */
-void locate_and_update_cell_info(unsigned long i, unsigned int ncside,particle_t *par, cell_t *cell)
+void locate_and_update_cell_info(double xp,double yp,double m, cell_t &cell)
 {
   // Determine cell where the particle is located
-  unsigned int ci = par[i].x * ncside;
-  unsigned int cj = par[i].y * ncside;
+
 
   // Add particles mass to cell mass
-  cell[ci*ncside+cj].m += par[i].m;
+  cell.m += m;
 
   // Add (x,y)*m to cell position ** this will have to be devided by the total mass of cell later
-  cell[ci*ncside+cj].x += (par[i].x * par[i].m);
-  cell[ci*ncside+cj].y += (par[i].y * par[i].m);
+  cell.x += xp*m;
+  cell.y += yp*m;
 
   // Assign cell ids to particle info
-  par[i].c_i = ci;
-  par[i].c_j = cj;
+
 }
 
 /*------------------------------------------------------------------------------
@@ -87,9 +85,11 @@ void init_particles(long seed, unsigned int ncside, unsigned long n_part,particl
     par[i].vx = RND0_1 / ncside / 10.0;
     par[i].vy = RND0_1 / ncside / 10.0;
     par[i].m = RND0_1 * ncside / (G * 1e6 * n_part);
+    par[i].c_i = par[i].x * ncside;
+    par[i].c_j = par[i].y * ncside;
   //}
   //for(i = 0; i < n_part; i++) {
-    locate_and_update_cell_info(i, ncside, par, cell);
+    locate_and_update_cell_info(par[i].x,par[i].y,par[i].m, cell[par[i].c_i*ncside+par[i].c_j]);
   }
 
   // Loop trough cells to calculate CoM positions of each cell
@@ -125,7 +125,7 @@ void init_particles(long seed, unsigned int ncside, unsigned long n_part,particl
  *              Fx,Fy forces acting on the particle
  *              cells 
  */
-void calculate_forces(unsigned int ci, unsigned int cj,unsigned int ncside, double xp, double yp, double m, double &Fx, double &Fy, const cell_t *cell)
+inline void calculate_forces(unsigned int ci, unsigned int cj,unsigned int ncside, double xp, double yp, double m, double &Fx, double &Fy, const cell_t *cell)
 {
   // Calculate distance from cell to point positions
   double dx = (cell[ci*ncside+cj].x - xp);
@@ -258,42 +258,44 @@ void calculate_forces(unsigned int ci, unsigned int cj,unsigned int ncside, doub
  *              Fx, Fy: forces in x and y direction
  *              par: vector containing all particles
  */
-void update_velocities_and_positions(unsigned long i, double Fx, double Fy, particle_t *par)
+void update_velocities_and_positions(unsigned long i,unsigned int ncside, double Fx, double Fy, particle_t &par)
 {
-  double ax = Fx / par[i].m; // calculate the acceleration in x direction
-  double ay = Fy / par[i].m; // calculate the acceleration in y direction
+  double ax = Fx / par.m; // calculate the acceleration in x direction
+  double ay = Fy / par.m; // calculate the acceleration in y direction
 
   // Update velocities and positions in "x" direction
-  par[i].vx += ax;
-  par[i].x += par[i].vx + 0.5 * ax;
+  par.vx += ax;
+  par.x += par.vx + 0.5 * ax;
 
   // Correct the "x" position
   // If it pass the right edge
-  if (par[i].x > 1)
+  if (par.x > 1)
   {
-    par[i].x -= (int)par[i].x;
+    par.x -= (int)par.x;
   }
   // If it pass the left edge
-  else if (par[i].x < 0)
+  else if (par.x < 0)
   {
-    par[i].x += (int)par[i].x + 1; // correct the position( if it pass the left edge)
+    par.x += (int)par.x + 1; // correct the position( if it pass the left edge)
   }
 
   // Update velocities and positions in "y" direction
-  par[i].vy += ay;
-  par[i].y += par[i].vy + 0.5 * ay;
+  par.vy += ay;
+  par.y += par.vy + 0.5 * ay;
 
   // Correct the "y" position
   // If it pass the top edge
-  if (par[i].y > 1)
+  if (par.y > 1)
   {
-    par[i].y -= (int)par[i].y;
+    par.y -= (int)par.y;
   }
   // If it pass the botton edge
-  else if (par[i].y < 0)
+  else if (par.y < 0)
   {
-    par[i].y += (int)par[i].y + 1;
+    par.y += (int)par.y + 1;
   }
+  par.c_i = par.x * ncside;
+  par.c_j = par.y * ncside;
 }
 
 /*------------------------------------------------------------------------------

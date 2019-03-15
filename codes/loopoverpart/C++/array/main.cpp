@@ -38,21 +38,22 @@ int main(int argc, char **argv)
         // Loop over particles
         for (unsigned long i = 0; i < n_part; i++)
         {
-            unsigned int ci = par[i].c_i; //cell index i
+            /* unsigned int ci = par[i].c_i; //cell index i
             unsigned int cj = par[i].c_j; //cell index j
             double xp = par[i].x;          // x of the particle
             double yp = par[i].y;          // y of the particel
-            double m = par[i].m;           // mass of the particle
+            double m = par[i].m;           // mass of the particle */
             double Fx = 0.0, Fy = 0.0;     // Fx,Fy force in (x,y) direction
 
             // Calculate force components
-            calculate_forces(ci, cj, ncside, xp, yp, m, Fx, Fy, cell);
+            calculate_forces(par[i].c_i,par[i].c_j, ncside, par[i].x, par[i].y,par[i].m, Fx, Fy, cell);
 
             // Update particle positions
-            update_velocities_and_positions(i, Fx, Fy, par);
-
+            update_velocities_and_positions(i,ncside, Fx, Fy, par[i]);
+            
             // Update particle's cell info
-            locate_and_update_cell_info(i, ncside, par, cell_aux);
+            locate_and_update_cell_info(par[i].x,par[i].y,par[i].m, cell_aux[par[i].c_i*ncside+par[i].c_j]);
+        
         }// end of loop over particles
         // Loop trough cells to calculate CoM positions of each cell
         for (unsigned int j = 0; j < ncside; j++)
