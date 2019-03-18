@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <ctime>
+#include <omp.h>
 #include "funcDef.h"
 
 
@@ -17,13 +18,13 @@ int main(int argc, char **argv)
     ncside = atol(argv[2]); //  size of the grid (number of cells on the side)
     n_part = atoll(argv[3]); //  number of particles
     ntstep = atol(argv[4]); //  number of time steps
-
+    int CPU_Cache_line_size = 64;
     clock_t time_req;
     time_req = clock();
 
     // Declarations
     cell_t *cell = (cell_t *)calloc(ncside*ncside,sizeof(cell_t)); // Matrix containing cells of the problem
-    particle_t *par =  (particle_t *) malloc(n_part * sizeof(particle_t)); // vector containing all particles of the problem
+    particle_t *par = (particle_t *) aligned_alloc(CPU_Cache_line_size,n_part*sizeof(particle_t)); // vector containing all particles of the problem
 
     // Initialize particles and cells
     init_particles(seed, ncside, n_part, par, cell);    
@@ -35,6 +36,7 @@ int main(int argc, char **argv)
         cell_t *cell_aux = (cell_t *)calloc(ncside*ncside,sizeof(cell_t)); // Auxilary matrix containing cells of the problem for the next time step 
 
         // Loop over particles
+        #pragma omp parallel for
         for (unsigned long i = 0; i < n_part; i++)
         {
             double Fx = 0.0, Fy = 0.0;     // Fx,Fy force in (x,y) direction
@@ -78,7 +80,9 @@ int main(int argc, char **argv)
     free(par);
     free(cell);
     time_req = clock()- time_req;
-    cout << "It took " << (float)time_req/CLOCKS_PER_SEC << " seconds" << endl;
+    int numberofthreads = omp_get_max_threads();
+    cout << "It took " << (float)time_req/CLOCKS_PER_SEC/numberofthreads << " seconds" << endl;
+    cout << "Number of threads  = " << numberofthreads << endl;
 
     return 0;
 }

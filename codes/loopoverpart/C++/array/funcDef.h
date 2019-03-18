@@ -73,7 +73,6 @@ void init_particles(long seed, unsigned int ncside, unsigned long n_part,particl
   // Loop trough cells to calculate CoM positions of each cell
   for (unsigned int j = 0; j < ncside*ncside; j++)
   {
-
       if (cell[j].m) // Only consider cells with mass greater then eps
       {
         // Update cell center of mass positions using the total mass of the cell
