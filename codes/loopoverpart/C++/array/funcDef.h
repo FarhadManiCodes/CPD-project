@@ -2,7 +2,7 @@
 #include <stdlib.h>
 //#include <stddef.h>
 #include <cmath>
-#include <vector>
+//#include <vector>
 
 // Global consts
 //#define RND0_1 ((double)random() / ((long long)1 << 31))
@@ -42,22 +42,20 @@ public:
  *              par: vector containing all particles
  *              cell: matrix containing
  */
-void locate_and_update_cell_info(unsigned long i, unsigned int ncside, vector<particle_t> &par, vector<vector<cell_t>> &cell)
+void locate_and_update_cell_info(double xp,double yp,double m, cell_t &cell)
 {
   // Determine cell where the particle is located
-  unsigned int ci = par[i].x * ncside;
-  unsigned int cj = par[i].y * ncside;
+
 
   // Add particles mass to cell mass
-  cell[ci][cj].m += par[i].m;
+  cell.m += m;
 
   // Add (x,y)*m to cell position ** this will have to be devided by the total mass of cell later
-  cell[ci][cj].x += (par[i].x * par[i].m);
-  cell[ci][cj].y += (par[i].y * par[i].m);
+  cell.x += xp*m;
+  cell.y += yp*m;
 
   // Assign cell ids to particle info
-  par[i].c_i = ci;
-  par[i].c_j = cj;
+
 }
 
 /*------------------------------------------------------------------------------
@@ -71,7 +69,7 @@ void locate_and_update_cell_info(unsigned long i, unsigned int ncside, vector<pa
  *              pointer to struct particle
  *              pointer to struct cell
  */
-void init_particles(long seed, unsigned int ncside, unsigned long n_part, vector<particle_t> &par, vector<vector<cell_t>> &cell)
+void init_particles(long seed, unsigned int ncside, unsigned long n_part,particle_t *par,cell_t *cell)
 {
   #define RND0_1 ((double)random() / ((long long)1 << 31))
   // Declarations
@@ -87,8 +85,11 @@ void init_particles(long seed, unsigned int ncside, unsigned long n_part, vector
     par[i].vx = RND0_1 / ncside / 10.0;
     par[i].vy = RND0_1 / ncside / 10.0;
     par[i].m = RND0_1 * ncside / (G * 1e6 * n_part);
-
-    locate_and_update_cell_info(i, ncside, par, cell);
+    par[i].c_i = par[i].x * ncside;
+    par[i].c_j = par[i].y * ncside;
+  //}
+  //for(i = 0; i < n_part; i++) {
+    locate_and_update_cell_info(par[i].x,par[i].y,par[i].m, cell[par[i].c_i*ncside+par[i].c_j]);
   }
 
   // Loop trough cells to calculate CoM positions of each cell
@@ -96,13 +97,11 @@ void init_particles(long seed, unsigned int ncside, unsigned long n_part, vector
   {
     for (unsigned int k = 0; k < ncside; k++)
     {
-      // ****************** CHECK THIS ******************
-      // What is DBL_EPSILON?
-      if (cell[j][k].m > __DBL_EPSILON__) // Only consider cells with mass greater then eps
+      if (cell[j*ncside+k].m) // Only consider cells with mass greater then eps
       {
         // Update cell center of mass positions using the total mass of the cell
-        cell[j][k].x /= cell[j][k].m;
-        cell[j][k].y /= cell[j][k].m;
+        cell[j*ncside+k].x /= cell[j*ncside+k].m;
+        cell[j*ncside+k].y /= cell[j*ncside+k].m;
       }
       // If we multiple by 0 afterwards why do we need to set a mass center?
       /* else // If the mass of the cell is too small put the center in the middle of the cell (This is not nescessary)
@@ -126,11 +125,11 @@ void init_particles(long seed, unsigned int ncside, unsigned long n_part, vector
  *              Fx,Fy forces acting on the particle
  *              cells 
  */
-void calculate_forces(unsigned int ci, unsigned int cj,unsigned int ncside, double xp, double yp, double m, double &Fx, double &Fy, const vector<vector<cell_t>> &cell)
+inline void calculate_forces(unsigned int ci, unsigned int cj,unsigned int ncside, double xp, double yp, double m, double &Fx, double &Fy, const cell_t *cell)
 {
   // Calculate distance from cell to point positions
-  double dx = (cell[ci][cj].x - xp);
-  double dy = (cell[ci][cj].y - yp);
+  double dx = (cell[ci*ncside+cj].x - xp);
+  double dy = (cell[ci*ncside+cj].y - yp);
 
   // Calcuate square ditance
   double d2 = dx * dx + dy * dy;
@@ -182,72 +181,72 @@ void calculate_forces(unsigned int ci, unsigned int cj,unsigned int ncside, doub
     // Calculating forces
     // Intercation with own cell : 0
     double d = sqrt(d2);
-    Fx += ((G * m * cell[ci][cj].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[ci][cj].m)) / d2 * (dy / d);
+    Fx += ((G * m * cell[ci*ncside+cj].m) / d2) * (dx / d);
+    Fy += ((G * m * cell[ci*ncside+cj].m)) / d2 * (dy / d);
 
     // Intercation with right cell (I+1,J) : 1
-    dx = (cell[cip1][cj].x - xp + wr);
-    dy = (cell[cip1][cj].y - yp);
+    dx = (cell[cip1*ncside+cj].x - xp + wr);
+    dy = (cell[cip1*ncside+cj].y - yp);
     d2 = dx * dx + dy * dy;
     d = sqrt(d2);
-    Fx += ((G * m * cell[cip1][cj].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[cip1][cj].m)) / d2 * (dy / d);
+    Fx += ((G * m * cell[cip1*ncside+cj].m) / d2) * (dx / d);
+    Fy += ((G * m * cell[cip1*ncside+cj].m)) / d2 * (dy / d);
 
     // Interaction with botton right cell (I+1,J-1) : 2
-    dx = (cell[cip1][cjm1].x - xp + wr);
-    dy = (cell[cip1][cjm1].y - yp) - wb;
+    dx = (cell[cip1*ncside+cjm1].x - xp + wr);
+    dy = (cell[cip1*ncside+cjm1].y - yp) - wb;
     d2 = dx * dx + dy * dy;
     d = sqrt(d2);
-    Fx += ((G * m * cell[cip1][cjm1].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[cip1][cjm1].m)) / d2 * (dy / d); //2
+    Fx += ((G * m * cell[cip1*ncside+cjm1].m) / d2) * (dx / d);
+    Fy += ((G * m * cell[cip1*ncside+cjm1].m)) / d2 * (dy / d); //2
 
     // Interaction with botton cell (I,J-1) : 3
-    dx = (cell[ci][cjm1].x - xp);
-    dy = (cell[ci][cjm1].y - yp) - wb;
+    dx = (cell[ci*ncside+cjm1].x - xp);
+    dy = (cell[ci*ncside+cjm1].y - yp) - wb;
     d2 = dx * dx + dy * dy;
     d = sqrt(d2);
-    Fx += ((G * m * cell[ci][cjm1].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[ci][cjm1].m)) / d2 * (dy / d);
+    Fx += ((G * m * cell[ci*ncside+cjm1].m) / d2) * (dx / d);
+    Fy += ((G * m * cell[ci*ncside+cjm1].m)) / d2 * (dy / d);
 
     // Interaction with left botton cell (I-1,J-1) : 4
-    dx = (cell[cim1][cjm1].x - xp) - wl;
-    dy = (cell[cim1][cjm1].y - yp) - wb;
+    dx = (cell[cim1*ncside+cjm1].x - xp) - wl;
+    dy = (cell[cim1*ncside+cjm1].y - yp) - wb;
     d2 = dx * dx + dy * dy;
     d = sqrt(d2);
-    Fx += ((G * m * cell[cim1][cjm1].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[cim1][cjm1].m)) / d2 * (dy / d);
+    Fx += ((G * m * cell[cim1*ncside+cjm1].m) / d2) * (dx / d);
+    Fy += ((G * m * cell[cim1*ncside+cjm1].m)) / d2 * (dy / d);
 
     // Interaction with left botton cell (I-1,J) : 5
-    dx = (cell[cim1][cj].x - xp) - wl;
-    dy = (cell[cim1][cj].y - yp);
+    dx = (cell[cim1*ncside+cj].x - xp) - wl;
+    dy = (cell[cim1*ncside+cj].y - yp);
     d2 = dx * dx + dy * dy;
     d = sqrt(d2);
-    Fx += ((G * m * cell[cim1][cj].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[cim1][cj].m)) / d2 * (dy / d); //5
+    Fx += ((G * m * cell[cim1*ncside+cj].m) / d2) * (dx / d);
+    Fy += ((G * m * cell[cim1*ncside+cj].m)) / d2 * (dy / d); //5
 
     // Interaction with left botton cell (I-1,J+1) : 6
-    dx = (cell[cim1][cjp1].x - xp) - wl;
-    dy = (cell[cim1][cjp1].y - yp) + wu;
+    dx = (cell[cim1*ncside+cjp1].x - xp) - wl;
+    dy = (cell[cim1*ncside+cjp1].y - yp) + wu;
     d2 = dx * dx + dy * dy;
     d = sqrt(d2);
-    Fx += ((G * m * cell[cim1][cjp1].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[cim1][cjp1].m)) / d2 * (dy / d); //6
+    Fx += ((G * m * cell[cim1*ncside+cjp1].m) / d2) * (dx / d);
+    Fy += ((G * m * cell[cim1*ncside+cjp1].m)) / d2 * (dy / d); //6
 
     // Interaction with left botton cell (I,J+1) : 7
-    dx = (cell[ci][cjp1].x - xp); //7 (I,J+1)
-    dy = (cell[ci][cjp1].y - yp) + wu;
+    dx = (cell[ci*ncside+cjp1].x - xp); //7 (I,J+1)
+    dy = (cell[ci*ncside+cjp1].y - yp) + wu;
     d2 = dx * dx + dy * dy;
     d = sqrt(d2);
-    Fx += ((G * m * cell[ci][cjp1].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[ci][cjp1].m)) / d2 * (dy / d); //7
+    Fx += ((G * m * cell[ci*ncside+cjp1].m) / d2) * (dx / d);
+    Fy += ((G * m * cell[ci*ncside+cjp1].m)) / d2 * (dy / d); //7
 
     // Interaction with left botton cell (I+1,J+1) : 8
-    dx = (cell[cip1][cjp1].x - xp) + wr;
-    dy = (cell[cip1][cjp1].y - yp) + wu;
+    dx = (cell[cip1*ncside+cjp1].x - xp) + wr;
+    dy = (cell[cip1*ncside+cjp1].y - yp) + wu;
     d2 = dx * dx + dy * dy;
     d = sqrt(d2);
-    Fx += ((G * m * cell[cip1][cjp1].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[cip1][cjp1].m)) / d2 * (dy / d);
+    Fx += ((G * m * cell[cip1*ncside+cjp1].m) / d2) * (dx / d);
+    Fy += ((G * m * cell[cip1*ncside+cjp1].m)) / d2 * (dy / d);
   }
 }
 
@@ -259,42 +258,44 @@ void calculate_forces(unsigned int ci, unsigned int cj,unsigned int ncside, doub
  *              Fx, Fy: forces in x and y direction
  *              par: vector containing all particles
  */
-void update_velocities_and_positions(unsigned long i, double Fx, double Fy, vector<particle_t> &par)
+void update_velocities_and_positions(unsigned long i,unsigned int ncside, double Fx, double Fy, particle_t &par)
 {
-  double ax = Fx / par[i].m; // calculate the acceleration in x direction
-  double ay = Fy / par[i].m; // calculate the acceleration in y direction
+  double ax = Fx / par.m; // calculate the acceleration in x direction
+  double ay = Fy / par.m; // calculate the acceleration in y direction
 
   // Update velocities and positions in "x" direction
-  par[i].vx += ax;
-  par[i].x += par[i].vx + 0.5 * ax;
+  par.vx += ax;
+  par.x += par.vx + 0.5 * ax;
 
   // Correct the "x" position
   // If it pass the right edge
-  if (par[i].x > 1)
+  if (par.x > 1)
   {
-    par[i].x -= (int)par[i].x;
+    par.x -= (int)par.x;
   }
   // If it pass the left edge
-  else if (par[i].x < 0)
+  else if (par.x < 0)
   {
-    par[i].x += (int)par[i].x + 1; // correct the position( if it pass the left edge)
+    par.x += (int)par.x + 1; // correct the position( if it pass the left edge)
   }
 
   // Update velocities and positions in "y" direction
-  par[i].vy += ay;
-  par[i].y += par[i].vy + 0.5 * ay;
+  par.vy += ay;
+  par.y += par.vy + 0.5 * ay;
 
   // Correct the "y" position
   // If it pass the top edge
-  if (par[i].y > 1)
+  if (par.y > 1)
   {
-    par[i].y -= (int)par[i].y;
+    par.y -= (int)par.y;
   }
   // If it pass the botton edge
-  else if (par[i].y < 0)
+  else if (par.y < 0)
   {
-    par[i].y += (int)par[i].y + 1;
+    par.y += (int)par.y + 1;
   }
+  par.c_i = par.x * ncside;
+  par.c_j = par.y * ncside;
 }
 
 /*------------------------------------------------------------------------------
@@ -305,7 +306,7 @@ void update_velocities_and_positions(unsigned long i, double Fx, double Fy, vect
  *              TotalCenter_:  position of center of mass
  *              total: total mass of the problem
  */
-void update_global_quantities(unsigned int ncside, double &TotalCenter_x, double &TotalCenter_y, double &total_mass, const vector<particle_t> &par, const vector<vector<cell_t>> &cell)
+void update_global_quantities(unsigned int ncside, double &TotalCenter_x, double &TotalCenter_y, double &total_mass, const cell_t *cell)
 {
   // Loop trough cells
   for (unsigned int j = 0; j < ncside; j++)
@@ -313,9 +314,9 @@ void update_global_quantities(unsigned int ncside, double &TotalCenter_x, double
     for (unsigned int k = 0; k < ncside; k++)
     {
       // Calculate info of each cell
-      TotalCenter_x += cell[j][k].x * cell[j][k].m;
-      TotalCenter_y += cell[j][k].y * cell[j][k].m;
-      total_mass += cell[j][k].m;
+      TotalCenter_x += cell[j*ncside+k].x * cell[j*ncside+k].m;
+      TotalCenter_y += cell[j*ncside+k].y * cell[j*ncside+k].m;
+      total_mass += cell[j*ncside+k].m;
     }
   }
 
