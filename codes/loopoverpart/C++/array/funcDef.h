@@ -72,7 +72,8 @@ void init_particles(long seed, unsigned int ncside, unsigned long n_part,particl
   }
   //================================================================
   // Loop trough cells to calculate CoM positions of each cell
-  //#pragma omp parallel for simd
+  //#pragma omp parallel for 
+  //#pragma omp simd
   for (unsigned int j = 0; j < ncside*ncside; j++)
   {
       if (cell[j].m) // Only consider cells with mass greater then eps

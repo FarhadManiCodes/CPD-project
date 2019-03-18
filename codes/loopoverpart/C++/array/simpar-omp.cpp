@@ -46,7 +46,7 @@ int main(int argc, char **argv)
             double Fx = 0.0, Fy = 0.0;     // Fx,Fy force in (x,y) direction
 
             // Calculate force components
-            calculate_forces(par[i].c_i,par[i].c_j, ncside, par[i].x, par[i].y,par[i].m, Fx, Fy, cell);
+            calculate_forces(par[i].c_i,par[i].c_j, ncside, par[i].x, par[i].y,par[i].m, Fx, Fy, cell);  // devide the loops and see what happens
 
             // Update particle positions
             update_velocities_and_positions(i,ncside, Fx, Fy, par[i]);
@@ -63,9 +63,7 @@ int main(int argc, char **argv)
         
         }// end of loop over particles
         // Loop trough cells to calculate CoM positions of each cell
-        //#pragma omp target map(to: cell_aux) map(tofrom: cell)
-        //#pragma omp parallel for simd
-        #pragma omp simd
+        #pragma omp parallel for 
         for (unsigned int j = 0; j < ncside*ncside; j++)
         {          
                 cell[j].m = cell_aux[j].m;
