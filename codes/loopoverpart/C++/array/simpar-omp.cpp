@@ -9,6 +9,10 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
+    int numberofthreads = omp_get_max_threads();
+    if (numberofthreads > 5)
+        numberofthreads = 5;
+    omp_set_num_threads (numberofthreads);    
     long seed; 
     unsigned int ncside, ntstep;
     unsigned long n_part;
@@ -36,7 +40,7 @@ int main(int argc, char **argv)
         cell_t *cell_aux = (cell_t *)calloc(ncside*ncside,sizeof(cell_t)); // Auxilary matrix containing cells of the problem for the next time step 
 
         // Loop over particles
-        #pragma omp parallel for
+        #pragma omp parallel for 
         for (unsigned long i = 0; i < n_part; i++)
         {
             double Fx = 0.0, Fy = 0.0;     // Fx,Fy force in (x,y) direction
@@ -49,13 +53,18 @@ int main(int argc, char **argv)
             
             // Update particle's cell info
             //locate_and_update_cell_info(par[i].x,par[i].y,par[i].m, cell_aux[par[i].c_i*ncside+par[i].c_j]);
-             cell_aux[par[i].c_i*ncside+par[i].c_j].m += par[i].m;
-             cell_aux[par[i].c_i*ncside+par[i].c_j].x += par[i].m*par[i].x;
-             cell_aux[par[i].c_i*ncside+par[i].c_j].y += par[i].m*par[i].y;
+            #pragma omp atomic
+                cell_aux[par[i].c_i*ncside+par[i].c_j].m += par[i].m;
+            #pragma omp atomic 
+                cell_aux[par[i].c_i*ncside+par[i].c_j].x += par[i].m*par[i].x;
+            #pragma omp atomic 
+                cell_aux[par[i].c_i*ncside+par[i].c_j].y += par[i].m*par[i].y;
 
         
         }// end of loop over particles
         // Loop trough cells to calculate CoM positions of each cell
+        //#pragma omp target map(to: cell_aux) map(tofrom: cell)
+        //#pragma omp parallel for simd
         for (unsigned int j = 0; j < ncside*ncside; j++)
         {          
                 cell[j].m = cell_aux[j].m;
@@ -65,6 +74,7 @@ int main(int argc, char **argv)
                 }
             
         }// end loop to update cell
+        //#pragma omp end target
         free(cell_aux);
     }
 
@@ -80,9 +90,9 @@ int main(int argc, char **argv)
     free(par);
     free(cell);
     time_req = clock()- time_req;
-    int numberofthreads = omp_get_max_threads();
-    cout << "It took " << (float)time_req/CLOCKS_PER_SEC/numberofthreads << " seconds" << endl;
     cout << "Number of threads  = " << numberofthreads << endl;
+    cout << "It took " << (float)time_req/CLOCKS_PER_SEC/numberofthreads << " seconds" << endl;
+    
 
     return 0;
 }
