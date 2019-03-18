@@ -1,8 +1,6 @@
 #include <iostream>
 #include <stdlib.h>
-//#include <stddef.h>
 #include <cmath>
-//#include <vector>
 
 // Global consts
 //#define RND0_1 ((double)random() / ((long long)1 << 31))
@@ -33,30 +31,7 @@ public:
   double y; // y possition of the cell CoM
   double m; // total mass of cell
 };
-/*------------------------------------------------------------------------------
- * Function:    locate_and_update_cell_info
- * Purpose:     locate cell belonging to ith particle and update its information 
- *
- * In arg:      i: index corresponding to particle
- *              ncside: number of cells in each side
- *              par: vector containing all particles
- *              cell: matrix containing
- */
-void locate_and_update_cell_info(double xp,double yp,double m, cell_t &cell)
-{
-  // Determine cell where the particle is located
 
-
-  // Add particles mass to cell mass
-  cell.m += m;
-
-  // Add (x,y)*m to cell position ** this will have to be devided by the total mass of cell later
-  cell.x += xp*m;
-  cell.y += yp*m;
-
-  // Assign cell ids to particle info
-
-}
 
 /*------------------------------------------------------------------------------
  * Function:    init_particles
@@ -85,31 +60,26 @@ void init_particles(long seed, unsigned int ncside, unsigned long n_part,particl
     par[i].vx = RND0_1 / ncside / 10.0;
     par[i].vy = RND0_1 / ncside / 10.0;
     par[i].m = RND0_1 * ncside / (G * 1e6 * n_part);
+    //---------------------------------------------------------------
     par[i].c_i = par[i].x * ncside;
     par[i].c_j = par[i].y * ncside;
-  //}
-  //for(i = 0; i < n_part; i++) {
-    locate_and_update_cell_info(par[i].x,par[i].y,par[i].m, cell[par[i].c_i*ncside+par[i].c_j]);
+   //----------------------------------------------------------------
+   //================================================================
+   cell[par[i].c_i*ncside+par[i].c_j].m += par[i].m;
+   cell[par[i].c_i*ncside+par[i].c_j].x += par[i].m*par[i].x;
+   cell[par[i].c_i*ncside+par[i].c_j].y += par[i].m*par[i].y;
   }
-
+  //================================================================
   // Loop trough cells to calculate CoM positions of each cell
-  for (unsigned int j = 0; j < ncside; j++)
+  for (unsigned int j = 0; j < ncside*ncside; j++)
   {
-    for (unsigned int k = 0; k < ncside; k++)
-    {
-      if (cell[j*ncside+k].m) // Only consider cells with mass greater then eps
+
+      if (cell[j].m) // Only consider cells with mass greater then eps
       {
         // Update cell center of mass positions using the total mass of the cell
-        cell[j*ncside+k].x /= cell[j*ncside+k].m;
-        cell[j*ncside+k].y /= cell[j*ncside+k].m;
+        cell[j].x /= cell[j].m;
+        cell[j].y /= cell[j].m;
       }
-      // If we multiple by 0 afterwards why do we need to set a mass center?
-      /* else // If the mass of the cell is too small put the center in the middle of the cell (This is not nescessary)
-      {
-        cell[j][k].x = (j + 0.5) / ncside;
-        cell[j][k].y = (k + 0.5) / ncside;
-      } */
-    }
   }
 }
 
@@ -181,7 +151,7 @@ inline void calculate_forces(unsigned int ci, unsigned int cj,unsigned int ncsid
     // Calculating forces
     // Intercation with own cell : 0
     double d = sqrt(d2);
-    Fx += ((G * m * cell[ci*ncside+cj].m) / d2) * (dx / d);
+    Fx += ((G * m * cell[ci*ncside+cj].m)) / d2 * (dx / d);
     Fy += ((G * m * cell[ci*ncside+cj].m)) / d2 * (dy / d);
 
     // Intercation with right cell (I+1,J) : 1
@@ -246,7 +216,7 @@ inline void calculate_forces(unsigned int ci, unsigned int cj,unsigned int ncsid
     d2 = dx * dx + dy * dy;
     d = sqrt(d2);
     Fx += ((G * m * cell[cip1*ncside+cjp1].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[cip1*ncside+cjp1].m)) / d2 * (dy / d);
+    Fy += ((G * m * cell[cip1*ncside+cjp1].m) / d2) * (dy / d); //8
   }
 }
 
@@ -309,32 +279,16 @@ void update_velocities_and_positions(unsigned long i,unsigned int ncside, double
 void update_global_quantities(unsigned int ncside, double &TotalCenter_x, double &TotalCenter_y, double &total_mass, const cell_t *cell)
 {
   // Loop trough cells
-  for (unsigned int j = 0; j < ncside; j++)
+  for (unsigned int j = 0; j < ncside*ncside; j++)
   {
-    for (unsigned int k = 0; k < ncside; k++)
-    {
       // Calculate info of each cell
-      TotalCenter_x += cell[j*ncside+k].x * cell[j*ncside+k].m;
-      TotalCenter_y += cell[j*ncside+k].y * cell[j*ncside+k].m;
-      total_mass += cell[j*ncside+k].m;
-    }
+      TotalCenter_x += cell[j].x * cell[j].m;
+      TotalCenter_y += cell[j].y * cell[j].m;
+      total_mass += cell[j].m;
+
   }
 
   // Update positions
   TotalCenter_x /= total_mass;
   TotalCenter_y /= total_mass;
 }
-/* 
-void zero_cells(long ncside, vector<vector<cell_t>> &cell_aux)
-{
-  for (size_t j = 0; j < ncside; j++)
-  {
-    for (size_t k = 0; k < ncside; k++)
-    {
-      // Calculate info of each cell
-      cell_aux[j][k].x = 0;
-      cell_aux[j][k].y = 0;
-      cell_aux[j][k].m = 0;
-    }
-  }
-} */
