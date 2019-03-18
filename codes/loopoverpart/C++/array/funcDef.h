@@ -1,7 +1,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <cmath>
-
+#define RND0_1 ((double)random() / ((long long)1 << 31))
 // Global consts
 //#define RND0_1 ((double)random() / ((long long)1 << 31))
 #define G 6.67408e-11
@@ -46,12 +46,13 @@ public:
  */
 void init_particles(long seed, unsigned int ncside, unsigned long n_part,particle_t *par,cell_t *cell)
 {
-  #define RND0_1 ((double)random() / ((long long)1 << 31))
+
   // Declarations
   unsigned long i;
   srandom(seed);
 
   // Loop over particles
+  
   for (i = 0; i < n_part; i++)
   {
     // Initiliaze random particle variables
@@ -71,6 +72,7 @@ void init_particles(long seed, unsigned int ncside, unsigned long n_part,particl
   }
   //================================================================
   // Loop trough cells to calculate CoM positions of each cell
+  //#pragma omp parallel for simd
   for (unsigned int j = 0; j < ncside*ncside; j++)
   {
       if (cell[j].m) // Only consider cells with mass greater then eps
@@ -256,7 +258,7 @@ void update_velocities_and_positions(unsigned long i,unsigned int ncside, double
   // If it pass the top edge
   if (par.y > 1)
   {
-    par.y -= (int)par.y;
+    par.y -= (int)par.y; // is there better option?
   }
   // If it pass the botton edge
   else if (par.y < 0)
@@ -275,9 +277,11 @@ void update_velocities_and_positions(unsigned long i,unsigned int ncside, double
  *              TotalCenter_:  position of center of mass
  *              total: total mass of the problem
  */
+
 void update_global_quantities(unsigned int ncside, double &TotalCenter_x, double &TotalCenter_y, double &total_mass, const cell_t *cell)
 {
   // Loop trough cells
+  #pragma omp simd
   for (unsigned int j = 0; j < ncside*ncside; j++)
   {
       // Calculate info of each cell

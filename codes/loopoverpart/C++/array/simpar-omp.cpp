@@ -10,8 +10,8 @@ using namespace std;
 int main(int argc, char **argv)
 {
     int numberofthreads = omp_get_max_threads();
-    if (numberofthreads > 5)
-        numberofthreads = 5;
+    if (numberofthreads > 4)
+        numberofthreads = 4;
     omp_set_num_threads (numberofthreads);    
     long seed; 
     unsigned int ncside, ntstep;
@@ -38,7 +38,7 @@ int main(int argc, char **argv)
     {
 
         cell_t *cell_aux = (cell_t *)calloc(ncside*ncside,sizeof(cell_t)); // Auxilary matrix containing cells of the problem for the next time step 
-
+        
         // Loop over particles
         #pragma omp parallel for 
         for (unsigned long i = 0; i < n_part; i++)
@@ -65,6 +65,7 @@ int main(int argc, char **argv)
         // Loop trough cells to calculate CoM positions of each cell
         //#pragma omp target map(to: cell_aux) map(tofrom: cell)
         //#pragma omp parallel for simd
+        #pragma omp simd
         for (unsigned int j = 0; j < ncside*ncside; j++)
         {          
                 cell[j].m = cell_aux[j].m;
@@ -79,6 +80,7 @@ int main(int argc, char **argv)
     }
 
     // Declaration of global mass info
+    
     double total_mass = 0.0, TotalCenter_x = 0.0, TotalCenter_y = 0.0;
 
     // Update global CoM and total mass
