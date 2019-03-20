@@ -2,29 +2,26 @@
 #include <stdlib.h>
 #include <ctime>
 #include <omp.h>
+#include <chrono>
 #include "funcDef.h"
-
 
 using namespace std;
 
 int main(int argc, char **argv)
 {
-    int numberofthreads = omp_get_max_threads();
-    if (numberofthreads > 4)
-        numberofthreads = 4;
-    omp_set_num_threads (numberofthreads);    
+    
     long seed; 
-    unsigned int ncside, ntstep;
-    unsigned long n_part;
+    size_t ncside, ntstep;
+    size_t n_part;
 
     // Function argument assignments
     seed = atol(argv[1]);   //  seed for the random number generator
     ncside = atol(argv[2]); //  size of the grid (number of cells on the side)
     n_part = atoll(argv[3]); //  number of particles
     ntstep = atol(argv[4]); //  number of time steps
-    int CPU_Cache_line_size = 64;
-    clock_t time_req;
-    time_req = clock();
+    size_t CPU_Cache_line_size = 64;
+    //-------------------------------------------------------------------------------------
+    chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
 
     // Declarations
     cell_t *cell = (cell_t *)calloc(ncside*ncside,sizeof(cell_t)); // Matrix containing cells of the problem
@@ -32,17 +29,16 @@ int main(int argc, char **argv)
 
     // Initialize particles and cells
     init_particles(seed, ncside, n_part, par, cell);    
-       
+    bool useopenmp_particle = (n_part > 100 && n_part/ncside > 10);  
     // Loop over time
-    for (unsigned int t_step = 0; t_step < ntstep; t_step++)
+    for (size_t t_step = 0; t_step < ntstep; t_step++)
     {
 
         cell_t *cell_aux = (cell_t *)calloc(ncside*ncside,sizeof(cell_t)); // Auxilary matrix containing cells of the problem for the next time step 
         
         // Loop over particles
-        #pragma omp parallel for 
-        for (unsigned long i = 0; i < n_part; i++)
-        {
+        #pragma omp parallel for if(useopenmp_particle)
+        for (size_t i = 0; i < n_part; i++) {
             double Fx = 0.0, Fy = 0.0;     // Fx,Fy force in (x,y) direction
 
             // Calculate force components
@@ -50,11 +46,11 @@ int main(int argc, char **argv)
 
             // Update particle positions
             update_velocities_and_positions(i,ncside, Fx, Fy, par[i]);
-            
+
             // Update particle's cell info
             //locate_and_update_cell_info(par[i].x,par[i].y,par[i].m, cell_aux[par[i].c_i*ncside+par[i].c_j]);
             #pragma omp atomic
-                cell_aux[par[i].c_i*ncside+par[i].c_j].m += par[i].m;
+                cell_aux[par[i].c_i*ncside+par[i].c_j].m += par[i].m;  // better use of atomic
             #pragma omp atomic 
                 cell_aux[par[i].c_i*ncside+par[i].c_j].x += par[i].m*par[i].x;
             #pragma omp atomic 
@@ -63,8 +59,8 @@ int main(int argc, char **argv)
         
         }// end of loop over particles
         // Loop trough cells to calculate CoM positions of each cell
-        #pragma omp parallel for 
-        for (unsigned int j = 0; j < ncside*ncside; j++)
+        //#pragma omp parallel for 
+        for (size_t j = 0; j < ncside*ncside; j++)
         {          
                 cell[j].m = cell_aux[j].m;
                 if (cell_aux[j].m){                    
@@ -73,7 +69,6 @@ int main(int argc, char **argv)
                 }
             
         }// end loop to update cell
-        //#pragma omp end target
         free(cell_aux);
     }
 
@@ -82,16 +77,29 @@ int main(int argc, char **argv)
     double total_mass = 0.0, TotalCenter_x = 0.0, TotalCenter_y = 0.0;
 
     // Update global CoM and total mass
-    update_global_quantities(ncside, TotalCenter_x, TotalCenter_y, total_mass, cell);
+    #pragma omp parallel for reduction(+:TotalCenter_x,TotalCenter_y,total_mass)
+    for (size_t j = 0; j < ncside*ncside; j++)
+    {
+    // Calculate info of each cell
+        TotalCenter_x += cell[j].x * cell[j].m;
+        TotalCenter_y += cell[j].y * cell[j].m;
+        total_mass += cell[j].m;
+    }
+        // Update positions
+    TotalCenter_x /= total_mass;
+    TotalCenter_y /= total_mass;
 
     // Print required results
     cout << par[0].x << " " << par[0].y << endl;
     cout << TotalCenter_x << " " << TotalCenter_y << endl;
     free(par);
     free(cell);
-    time_req = clock()- time_req;
+    chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
+    chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
+    float time_req = time_span.count();
+    int numberofthreads = omp_get_max_threads();  
     cout << "Number of threads  = " << numberofthreads << endl;
-    cout << "It took " << (float)time_req/CLOCKS_PER_SEC/numberofthreads << " seconds" << endl;
+    cout << "It took " << time_req << " seconds" << endl;
     
 
     return 0;
