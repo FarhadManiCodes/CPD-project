@@ -19,8 +19,8 @@ public:
   double vx;        // velocity of the particle in x direction
   double vy;        // velocity of the particle in y direction
   double m;         // mass of the particle
-  unsigned int c_i; // particle's cell index 1 (row index)
-  unsigned int c_j; // particle's cell index 2 (column index)
+  size_t c_i; // particle's cell index 1 (row index)
+  size_t c_j; // particle's cell index 2 (column index)
 };
 
 // Cell class
@@ -44,11 +44,11 @@ public:
  *              pointer to struct particle
  *              pointer to struct cell
  */
-void init_particles(long seed, unsigned int ncside, unsigned long n_part,particle_t *par,cell_t *cell)
+void init_particles(long seed, size_t ncside, size_t n_part,particle_t *par,cell_t *cell)
 {
 
   // Declarations
-  unsigned long i;
+  size_t i;
   srandom(seed);
 
   // Loop over particles
@@ -74,7 +74,7 @@ void init_particles(long seed, unsigned int ncside, unsigned long n_part,particl
   // Loop trough cells to calculate CoM positions of each cell
   //#pragma omp parallel for 
   //#pragma omp simd
-  for (unsigned int j = 0; j < ncside*ncside; j++)
+  for (size_t j = 0; j < ncside*ncside; j++)
   {
       if (cell[j].m) // Only consider cells with mass greater then eps
       {
@@ -97,7 +97,7 @@ void init_particles(long seed, unsigned int ncside, unsigned long n_part,particl
  *              Fx,Fy forces acting on the particle
  *              cells 
  */
-inline void calculate_forces(unsigned int ci, unsigned int cj,unsigned int ncside, double xp, double yp, double m, double &Fx, double &Fy, const cell_t *cell)
+inline void calculate_forces(size_t ci, size_t cj,size_t ncside, double xp, double yp, double m, double &Fx, double &Fy, const cell_t *cell)
 {
   // Calculate distance from cell to point positions
   double dx = (cell[ci*ncside+cj].x - xp);
@@ -109,7 +109,7 @@ inline void calculate_forces(unsigned int ci, unsigned int cj,unsigned int ncsid
   // Check if the distance is bigger then epslon
   if (d2 >= EPSLON2) {
     // Indexes associated with neighboring cells
-    unsigned int cip1, cim1, cjp1, cjm1;          // cip1: ci+1; cim1: ci-1; cjp1,cjm1 = (cj+1,cj-1)
+    size_t cip1, cim1, cjp1, cjm1;          // cip1: ci+1; cim1: ci-1; cjp1,cjm1 = (cj+1,cj-1)
     double wl = 0.0, wr = 0.0, wu = 0.0, wb = 0.0; // wl,wr,wu,wb went to the (left,right,up,bottom) of domain
 
     // Check location of neighboring particles (left and right)
@@ -150,75 +150,72 @@ inline void calculate_forces(unsigned int ci, unsigned int cj,unsigned int ncsid
       wb = 1.0;
     }
 
+    double W = G*m;
+    
     // Calculating forces
     // Intercation with own cell : 0
-    double d = sqrt(d2);
-    Fx += ((G * m * cell[ci*ncside+cj].m)) / d2 * (dx / d);
-    Fy += ((G * m * cell[ci*ncside+cj].m)) / d2 * (dy / d);
+    double fd = sqrt(d2);
+    Fx += ((W * cell[ci*ncside+cj].m)) / (d2 *fd)* dx ;
+    Fy += ((W * cell[ci*ncside+cj].m)) / (d2 *fd) *dy;
 
     // Intercation with right cell (I+1,J) : 1
     dx = (cell[cip1*ncside+cj].x - xp + wr);
     dy = (cell[cip1*ncside+cj].y - yp);
-    d2 = dx * dx + dy * dy;
-    d = sqrt(d2);
-    Fx += ((G * m * cell[cip1*ncside+cj].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[cip1*ncside+cj].m)) / d2 * (dy / d);
+    fd = pow(dx * dx + dy * dy,-1.5);
+    Fx += W * cell[cip1*ncside+cj].m * fd *dx;
+    Fy += W * cell[cip1*ncside+cj].m * fd *dy;
 
     // Interaction with botton right cell (I+1,J-1) : 2
-    dx = (cell[cip1*ncside+cjm1].x - xp + wr);
-    dy = (cell[cip1*ncside+cjm1].y - yp) - wb;
-    d2 = dx * dx + dy * dy;
-    d = sqrt(d2);
-    Fx += ((G * m * cell[cip1*ncside+cjm1].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[cip1*ncside+cjm1].m)) / d2 * (dy / d); //2
+    dx = cell[cip1*ncside+cjm1].x - xp + wr;
+    dy = cell[cip1*ncside+cjm1].y - yp - wb;
+    fd = pow(dx * dx + dy * dy,-1.5);
+    Fx += W * cell[cip1*ncside+cjm1].m * fd *dx;
+    Fy += W * cell[cip1*ncside+cjm1].m * fd *dy; //2
 
     // Interaction with botton cell (I,J-1) : 3
-    dx = (cell[ci*ncside+cjm1].x - xp);
-    dy = (cell[ci*ncside+cjm1].y - yp) - wb;
-    d2 = dx * dx + dy * dy;
-    d = sqrt(d2);
-    Fx += ((G * m * cell[ci*ncside+cjm1].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[ci*ncside+cjm1].m)) / d2 * (dy / d);
+    dx = cell[ci*ncside+cjm1].x - xp;
+    dy = cell[ci*ncside+cjm1].y - yp - wb;
+    fd = pow(dx * dx + dy * dy,-1.5);
+    Fx += W * cell[ci*ncside+cjm1].m * fd * dx;
+    Fy += W * cell[ci*ncside+cjm1].m * fd * dy;
 
     // Interaction with left botton cell (I-1,J-1) : 4
     dx = (cell[cim1*ncside+cjm1].x - xp) - wl;
     dy = (cell[cim1*ncside+cjm1].y - yp) - wb;
-    d2 = dx * dx + dy * dy;
-    d = sqrt(d2);
-    Fx += ((G * m * cell[cim1*ncside+cjm1].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[cim1*ncside+cjm1].m)) / d2 * (dy / d);
+    fd = pow(dx * dx + dy * dy,-1.5);
+    Fx += W * cell[cim1*ncside+cjm1].m * fd * dx;
+    Fy += W * cell[cim1*ncside+cjm1].m* fd * dy;
 
     // Interaction with left botton cell (I-1,J) : 5
     dx = (cell[cim1*ncside+cj].x - xp) - wl;
     dy = (cell[cim1*ncside+cj].y - yp);
     d2 = dx * dx + dy * dy;
-    d = sqrt(d2);
-    Fx += ((G * m * cell[cim1*ncside+cj].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[cim1*ncside+cj].m)) / d2 * (dy / d); //5
+    fd = pow(dx * dx + dy * dy,-1.5);
+    Fx += W * cell[cim1*ncside+cj].m * fd * dx;
+    Fy += W * cell[cim1*ncside+cj].m * fd * dy; //5
 
     // Interaction with left botton cell (I-1,J+1) : 6
     dx = (cell[cim1*ncside+cjp1].x - xp) - wl;
     dy = (cell[cim1*ncside+cjp1].y - yp) + wu;
-    d2 = dx * dx + dy * dy;
-    d = sqrt(d2);
-    Fx += ((G * m * cell[cim1*ncside+cjp1].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[cim1*ncside+cjp1].m)) / d2 * (dy / d); //6
+    fd = pow(dx * dx + dy * dy,-1.5);
+    Fx += W * cell[cim1*ncside+cjp1].m * fd * dx;
+    Fy += W * cell[cim1*ncside+cjp1].m * fd * dy; //6
 
     // Interaction with left botton cell (I,J+1) : 7
     dx = (cell[ci*ncside+cjp1].x - xp); //7 (I,J+1)
     dy = (cell[ci*ncside+cjp1].y - yp) + wu;
     d2 = dx * dx + dy * dy;
-    d = sqrt(d2);
-    Fx += ((G * m * cell[ci*ncside+cjp1].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[ci*ncside+cjp1].m)) / d2 * (dy / d); //7
+    fd = pow(dx * dx + dy * dy,-1.5);
+    Fx += W * cell[ci*ncside+cjp1].m * fd *dx;
+    Fy += W * cell[ci*ncside+cjp1].m * fd *dy; //7
 
     // Interaction with left botton cell (I+1,J+1) : 8
     dx = (cell[cip1*ncside+cjp1].x - xp) + wr;
     dy = (cell[cip1*ncside+cjp1].y - yp) + wu;
     d2 = dx * dx + dy * dy;
-    d = sqrt(d2);
-    Fx += ((G * m * cell[cip1*ncside+cjp1].m) / d2) * (dx / d);
-    Fy += ((G * m * cell[cip1*ncside+cjp1].m) / d2) * (dy / d); //8
+    fd = pow(dx * dx + dy * dy,-1.5);
+    Fx += W * cell[cip1*ncside+cjp1].m * fd * dx;
+    Fy += W * cell[cip1*ncside+cjp1].m * fd * dy; //8
   }
 }
 
@@ -230,7 +227,7 @@ inline void calculate_forces(unsigned int ci, unsigned int cj,unsigned int ncsid
  *              Fx, Fy: forces in x and y direction
  *              par: vector containing all particles
  */
-void update_velocities_and_positions(unsigned long i,unsigned int ncside, double Fx, double Fy, particle_t &par)
+void update_velocities_and_positions(size_t i,size_t ncside, double Fx, double Fy, particle_t &par)
 {
   double ax = Fx / par.m; // calculate the acceleration in x direction
   double ay = Fy / par.m; // calculate the acceleration in y direction
@@ -268,31 +265,4 @@ void update_velocities_and_positions(unsigned long i,unsigned int ncside, double
   }
   par.c_i = par.x * ncside;
   par.c_j = par.y * ncside;
-}
-
-/*------------------------------------------------------------------------------
- * Function:    update_global_quantities
- * Purpose:     update global mass and CoM  
- *
- * In arg:      i: index corresponding to particle
- *              TotalCenter_:  position of center of mass
- *              total: total mass of the problem
- */
-
-void update_global_quantities(unsigned int ncside, double &TotalCenter_x, double &TotalCenter_y, double &total_mass, const cell_t *cell)
-{
-  // Loop trough cells
-  #pragma omp simd
-  for (unsigned int j = 0; j < ncside*ncside; j++)
-  {
-      // Calculate info of each cell
-      TotalCenter_x += cell[j].x * cell[j].m;
-      TotalCenter_y += cell[j].y * cell[j].m;
-      total_mass += cell[j].m;
-
-  }
-
-  // Update positions
-  TotalCenter_x /= total_mass;
-  TotalCenter_y /= total_mass;
 }
