@@ -74,12 +74,7 @@ for (unsigned int k = 2; k  < totaln_part ;k++){
                             av_omp1_time+=time_omp1;
                             av_omp2_time+=time_omp2;
                             av_omp4_time+=time_omp4;
-
-                        
-                       // myfile << seed << "," << ntstep << "," << ncside << "," << n_part << "," << time_serial << ","<<time_omp1 << ","<<time_omp2 << ","<< time_omp4 << endl;
-                        
-                        //cout << seed << "," << ncside << "," << n_part << "," << ntstep << "," << time_serial << ","<<time_omp1 << ","<<time_omp2 << ","<< time_omp4 << "\n"<< endl;
-                        
+                       
 
                 }
                 av_serial_time/=totalseed;

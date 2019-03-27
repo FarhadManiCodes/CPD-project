@@ -10,73 +10,77 @@ void reduction(long seed,unsigned int ncside,size_t n_part, unsigned int ntstep)
 
     unsigned int CPU_Cache_line_size = 64;
     //-------------------------------------------------------------------------------------
-    chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
 
     // Declarations
     particle_t *par = (particle_t *)aligned_alloc(CPU_Cache_line_size, n_part * sizeof(particle_t)); // vector containing all particles of the problem
-
+//=================================================================================
+//================     Initilization start ========================================
+//=================================================================================
     // Initialize particles and cells
     init_particles(seed, ncside, n_part, par);
-    // Loop trough cells to calculate CoM positions of each cell
-    size_t n_cell = ncside * ncside;
-    bool useopenmp_particle = (n_part > 100 && n_part / n_cell > 1);
     if (2 * ncside <  1.41424 / EPSLON)
     {
-        size_t i, j;
+        size_t n_cell = ncside * ncside;
         cell_t *cell = (cell_t *)aligned_alloc(CPU_Cache_line_size, n_cell * sizeof(cell_t));
         double *cell_x = (double *)calloc(n_cell , sizeof(double));
         double *cell_y = (double *)calloc(n_cell , sizeof(double));
         double *cell_m = (double *)calloc(n_cell , sizeof(double));
-#pragma omp parallel private(i, j) if (useopenmp_particle)
+        size_t i;
+        #pragma omp parallel private(i)
         {
-#pragma omp for reduction(+:cell_x[:n_cell],cell_y[:n_cell],cell_m[:n_cell])
-            for (i = 0; i < n_part; i++)
+            //update initiall cells            
+            #pragma omp for reduction(+:cell_x[:n_cell],cell_y[:n_cell],cell_m[:n_cell]) 
+            for (i = 0; i < n_part; i++) //loop over the particles
             {
+                
                 //---------------------------------------------------------------
                 unsigned int c_i = par[i].x * ncside;
                 unsigned int c_j = par[i].y * ncside;
                 //----------------------------------------------------------------
+                //update_cell
                 cell_m[c_i * ncside + c_j] += par[i].m;
                 cell_x[c_i * ncside + c_j] += par[i].x * par[i].m;
                 cell_y[c_i * ncside + c_j] += par[i].y * par[i].m;
-            }
-#pragma omp for
-            for (j = 0; j < n_cell; j++) // loop to update cell
+            }//end of loop over the particles 
+            #pragma omp for //adjust center of mass
+            for (i = 0; i < n_cell; i++) // loop to update cell
             {
-                cell[j].m = cell_m[j];
-                if (cell_m[j])
+                cell[i].m = cell_m[i];
+                if (cell_m[i])  // Only consider cells with mass
                 {
-                    cell[j].x = cell_x[j] / cell_m[j];
-                    cell[j].y = cell_y[j] / cell_m[j];
+                    cell[i].x = cell_x[i] / cell_m[i];
+                    cell[i].y = cell_y[i] / cell_m[i];
                 }
             }
 
         } //end of parallel section
-         //Initilization done!
         free(cell_x);
         free(cell_y);
         free(cell_m);
+//=================================================================================
+//================     Initilization done! ========================================
+//=================================================================================
 
-        //----------------------------------------------------------------------------------------------------------------------
-        //------------- starrt loop over time ----------------------------------------------------------------------------------
-        //----------------------------------------------------------------------------------------------------------------------
-        // start Loop over time
-        for (unsigned int t_step = 0; t_step < ntstep; t_step++)
+
+//=================================================================================
+//================    start Loop over time ========================================
+//================================================================================= 
+        
+        for (unsigned int t_step = 0; t_step < ntstep; t_step++) //loop over time
         {
-            size_t i, j;
-        double *cell_x = (double *)calloc(n_cell , sizeof(double));
-        double *cell_y = (double *)calloc(n_cell , sizeof(double));
-        double *cell_m = (double *)calloc(n_cell , sizeof(double));
-//==========================================================================================================      firstprivate(cell_aux)
-#pragma omp parallel private(i, j) if (useopenmp_particle) //if(n_part > 100 && n_part/ncside > 10)
+            
+            double *cell_x = (double *)calloc(n_cell , sizeof(double));
+            double *cell_y = (double *)calloc(n_cell , sizeof(double)); // Auxilary matrix containing cells of the problem for the next time step 
+            double *cell_m = (double *)calloc(n_cell , sizeof(double));
+            size_t i;
+            //==========================================================================================================  
+            #pragma omp parallel private(i) 
             {
-                //============================================================================================================
-                //============================================================================================================
+                //----------------------------------------------------------------
                 // Loop over particles
-
-#pragma omp for nowait
+                #pragma omp for nowait 
                 for (i = 0; i < n_part; i++)
-                {
+                {//loop over particles to calculate forces + Update position and velocity  
                     double ax = 0.0, ay = 0.0; // ax,ay acceleration in (x,y) direction
                     unsigned int c_i = par[i].x * ncside;
                     unsigned int c_j = par[i].y * ncside;
@@ -85,10 +89,9 @@ void reduction(long seed,unsigned int ncside,size_t n_part, unsigned int ntstep)
 
                     // Update particle positions
                     update_velocities_and_positions(ax, ay, par[i]);
-                }
-#pragma omp for reduction(+: cell_x[:n_cell], cell_y[:n_cell], cell_m[:n_cell])
-
-                for (i = 0; i < n_part; i++)
+                }//end of loop over particles to calculate forces + Update position and velocity  
+                #pragma omp for reduction(+: cell_x[:n_cell], cell_y[:n_cell], cell_m[:n_cell])
+                for (i = 0; i < n_part; i++)// update cells
                 {
                     unsigned int c_i = par[i].x * ncside;
                     unsigned int c_j = par[i].y * ncside;
@@ -97,31 +100,34 @@ void reduction(long seed,unsigned int ncside,size_t n_part, unsigned int ntstep)
                     cell_m[c_i * ncside + c_j] += par[i].m;
                     cell_x[c_i * ncside + c_j] += par[i].x * par[i].m;
                     cell_y[c_i * ncside + c_j] += par[i].y * par[i].m;
-                } // end of loop over particles
-                  //==========================================================================================================
-                  // Loop trough cells to calculate CoM positions of each cell
-#pragma omp for
-                for (j = 0; j < n_cell; j++) // loop to update cell
+                } //end of update cells
+                // end of loop over particles
+                //==========================================================================================================
+                #pragma omp for // Loop trough cells to calculate CoM positions of each cell
+                for (i = 0; i < n_cell; i++) // adjust center of mass
                 {
-                    cell[j].m = cell_m[j];
-                    if (cell_m[j])
+                    cell[i].m = cell_m[i];
+                    if (cell_m[i])
                     {
-                        cell[j].x = cell_x[j] / cell_m[j];
-                        cell[j].y = cell_y[j] / cell_m[j];
+                        cell[i].x = cell_x[i] / cell_m[i];
+                        cell[i].y = cell_y[i] / cell_m[i];
                     }
-                }
-
+                } // end of adjust center of mass
             } //end parallel section
+        //==========================================================================================================  
             free(cell_x);
             free(cell_y);
             free(cell_m);
         } // end loop over time
-              //==============================================================================================================================
-              // Declaration of global mass info
-        double total_mass = 0.0, TotalCenter_x = 0.0, TotalCenter_y = 0.0;
-
-// Update global CoM and total mass
-#pragma omp parallel for if (n_cell > 100) reduction(+ \
+//=================================================================================
+//================    end Loop over time ==========================================
+//=================================================================================        
+    
+    // Declaration of overall mass info
+    double total_mass = 0.0, TotalCenter_x = 0.0, TotalCenter_y = 0.0;
+    
+    // Update overall CoM and total mass
+    #pragma omp parallel for if (n_cell > 100) reduction(+ \
                                                     : TotalCenter_x, TotalCenter_y, total_mass)
         for (size_t j = 0; j < n_cell; j++)
         {
@@ -133,24 +139,23 @@ void reduction(long seed,unsigned int ncside,size_t n_part, unsigned int ntstep)
         // Update positions
         TotalCenter_x /= total_mass;
         TotalCenter_y /= total_mass;
-
         // Print required results
-        //cout << par[0].x << " " << par[0].y << endl;
-        //cout << TotalCenter_x << " " << TotalCenter_y << endl;
+        printf("%.2f %.2f \n",par[0].x,par[0].y);
+        printf("%.2f %.2f \n",TotalCenter_x,TotalCenter_y);
         free(cell);
     }
     else
     {
         for (unsigned int t_step = 0; t_step < ntstep; t_step++)
         {
-#pragma omp parallel for if (useopenmp_particle)
+            #pragma omp parallel for if (n_part > 16)
             for (size_t i = 0; i < n_part; i++)
             {
                 update_velocities_and_positions(0, 0, par[i]);
             }
         }
         double total_mass = 0.0, TotalCenter_x = 0.0, TotalCenter_y = 0.0;
-#pragma omp parallel for if (useopenmp_particle)
+        #pragma omp parallel for if (n_part > 16)
         for (size_t j = 0; j < n_part; j++)
         {
             TotalCenter_x += par[j].x * par[j].m;
@@ -162,8 +167,8 @@ void reduction(long seed,unsigned int ncside,size_t n_part, unsigned int ntstep)
         TotalCenter_y /= total_mass;
 
         // Print required results
-        //cout << par[0].x << " " << par[0].y << endl;
-        //cout << TotalCenter_x << " " << TotalCenter_y << endl;
+        printf("%.2f %.2f \n",par[0].x,par[0].y);
+        printf("%.2f %.2f \n",TotalCenter_x,TotalCenter_y);
     }
     free(par);
 }

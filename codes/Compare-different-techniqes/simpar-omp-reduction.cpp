@@ -29,7 +29,6 @@ int main(int argc, char **argv)
     // Initialize particles and cells
     init_particles(seed, ncside, n_part, par);
     // Loop trough cells to calculate CoM positions of each cell
-    bool useopenmp_particle = (n_part > 100 && n_part / ncside > 10);
     if (2 * ncside <  1.41424 / EPSLON)
     {
         size_t i, j;
@@ -38,7 +37,7 @@ int main(int argc, char **argv)
         double *cell_x = (double *)calloc(n_cell , sizeof(double));
         double *cell_y = (double *)calloc(n_cell , sizeof(double));
         double *cell_m = (double *)calloc(n_cell , sizeof(double));
-#pragma omp parallel private(i, j) if (useopenmp_particle)
+        #pragma omp parallel private(i) 
         {
 #pragma omp for reduction(+                         \
                           : cell_x[:n_cell], cell_y \

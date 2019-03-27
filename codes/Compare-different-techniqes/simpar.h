@@ -10,16 +10,17 @@ void serial(long seed,unsigned int ncside,size_t n_part, unsigned int ntstep)
     // Declarations
 
     particle_t *par = (particle_t *)malloc(n_part * sizeof(particle_t)); // vector containing all particles of the problem
-    
-    // Initialize particles and cells
+//=================================================================================
+//================     Initilization start ========================================
+//=================================================================================    
+    // Initialize particles 
     init_particles(seed, ncside, n_part, par);
-    // Loop trough cells to calculate CoM positions of each cell
 
     if (2 * ncside < 1.41424 / EPSLON)
     {
         size_t n_cell = ncside * ncside;
         cell_t *cell = (cell_t *)calloc(n_cell, sizeof(cell_t));    
-        for (size_t i = 0; i < n_part; i++)
+        for (size_t i = 0; i < n_part; i++) //loop over the particles to update cells
         {
             //---------------------------------------------------------------
             unsigned int c_i = par[i].x * ncside;
@@ -29,18 +30,24 @@ void serial(long seed,unsigned int ncside,size_t n_part, unsigned int ntstep)
 
             update_cell(cell[c_i * ncside + c_j], par[i].m, par[i].x, par[i].y);
         }
-        for (size_t j = 0; j < n_cell; j++)
+        for (size_t j = 0; j < n_cell; j++) //adjust center of mass
         {
-            if (cell[j].m) // Only consider cells with mass greater then eps
+            if (cell[j].m) // Only consider cells with mass 
             {
                 // Update cell center of mass positions using the total mass of the cell
                 cell[j].x /= cell[j].m;
                 cell[j].y /= cell[j].m;
             }
-        }
-
-        // Loop over time
-        for (unsigned int t_step = 0; t_step < ntstep; t_step++)
+        }//end of adjust center of mass
+//=================================================================================
+//================     Initilization done! ========================================
+//=================================================================================   
+ 
+//=================================================================================
+//================    start Loop over time ========================================
+//================================================================================= 
+       
+        for (unsigned int t_step = 0; t_step < ntstep; t_step++)  // Loop over time
         {
 
             cell_t *cell_aux = (cell_t *)calloc(n_cell, sizeof(cell_t)); // Auxilary matrix containing cells of the problem for the next time step
@@ -61,8 +68,9 @@ void serial(long seed,unsigned int ncside,size_t n_part, unsigned int ntstep)
                 update_cell(cell_aux[c_i * ncside + c_j], par[i].m, par[i].x, par[i].y);
 
             } // end of loop over particles
+            //----------------------------------------------------------------
             // Loop trough cells to calculate CoM positions of each cell
-            for (size_t j = 0; j < n_cell; j++)
+            for (size_t j = 0; j < n_cell; j++) //adjust center of mass
             {
                 cell[j].m = cell_aux[j].m;
                 if (cell_aux[j].m)
@@ -71,9 +79,12 @@ void serial(long seed,unsigned int ncside,size_t n_part, unsigned int ntstep)
                     cell[j].y = cell_aux[j].y / cell_aux[j].m;
                 }
 
-            } // end loop to update cell
+            } // end adjust center of mass
             free(cell_aux);
-        }
+        }// end loop over time
+//=================================================================================
+//================    end Loop over time ==========================================
+//=================================================================================
 
         // Declaration of global mass info
         double total_mass = 0.0, TotalCenter_x = 0.0, TotalCenter_y = 0.0;
@@ -91,8 +102,8 @@ void serial(long seed,unsigned int ncside,size_t n_part, unsigned int ntstep)
         TotalCenter_y /= total_mass;
         
         // Print required results
-        //cout << par[0].x << " " << par[0].y << endl;
-        //cout << TotalCenter_x << " " << TotalCenter_y << endl;
+        printf("%.2f %.2f \n",par[0].x,par[0].y);
+        printf("%.2f %.2f \n",TotalCenter_x,TotalCenter_y);
         free(cell);
     }
     else
@@ -115,8 +126,8 @@ void serial(long seed,unsigned int ncside,size_t n_part, unsigned int ntstep)
         TotalCenter_x /= total_mass;
         TotalCenter_y /= total_mass;
         // Print required results
-        //cout << par[0].x << " " << par[0].y << endl;
-        //cout << TotalCenter_x << " " << TotalCenter_y << endl;
+        printf("%.2f %.2f \n",par[0].x,par[0].y);
+        printf("%.2f %.2f \n",TotalCenter_x,TotalCenter_y);
     }
     free(par);
 }
