@@ -1,3 +1,6 @@
+
+#ifndef FUNCDEF_H
+#define FUNCDEF_H
 #include <iostream>
 #include <stdlib.h>
 #include <cmath>
@@ -270,3 +273,4 @@ void update_velocities_and_positions( double ax, double ay, particle_t &par)
     par.y += (int)par.y + 1;
   }
 }
+#endif
