@@ -16,13 +16,16 @@ using namespace std;
 
 int main(){
     ofstream myfile;
-    int totalseed = 2;
+    int totalseed = 5;
     int totalncside = 7;
-    int totaln_part = 8;
+    int totaln_part = 9;
     int totalntstep = 1;
     myfile.open ("time.txt", ios::trunc);
-for (unsigned int k = 2; k  < totaln_part ;k++){
+    printf("Test started\n");   
+for (unsigned int k = 1; k  <= totaln_part ;k++){
+        printf("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");   
     for (unsigned int i = 0; i  < totalntstep ;i++){
+        printf("========================================================================\n");    
         for (unsigned int j = 2; j  <= totalncside ;j++){
             
                 float av_serial_time = 0.0;
@@ -30,15 +33,18 @@ for (unsigned int k = 2; k  < totaln_part ;k++){
                 float av_omp2_time = 0.0;
                 float av_omp4_time = 0.0;
                 //---------------------------------------------------------------------------              
-                unsigned long n_part = 1*pow(10,k+1);
+                size_t n_part = 1000*pow(4,k);
                 unsigned int ncside = pow(2,j);
                 unsigned int ntstep = 10;
+                printf("----------------------------------------------------------\n");
                 for (unsigned int s = 0; s < totalseed  ;s++){
                         long seed = s; 
+                        printf("seed = %ld,ncside = %u,n_part = %lu\n",seed,ncside,n_part);
                         /*unsigned int ncside = j*5;
                         unsigned long n_part = 10000*pow(2,k);
                         unsigned int ntstep = i*10; */
                         //test serial
+                        printf("serial\n");
                         chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
                         serial(seed, ncside,n_part,ntstep);
                         chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
@@ -46,6 +52,7 @@ for (unsigned int k = 2; k  < totaln_part ;k++){
                         float time_serial = time_span.count();
  
                         //test omp
+                        printf("manual\n");
                         t1 = chrono::high_resolution_clock::now();
                         omp_set_num_threads(4);
                         manual(seed, ncside,n_part,ntstep);
@@ -54,6 +61,7 @@ for (unsigned int k = 2; k  < totaln_part ;k++){
                         float time_omp1 = time_span.count();
                         //---------------------------------------------------------------------------
                         //test omp
+                        printf("reduction\n");
                         t1 = chrono::high_resolution_clock::now();
                         omp_set_num_threads(4);
                         reduction(seed, ncside,n_part,ntstep);
@@ -62,6 +70,7 @@ for (unsigned int k = 2; k  < totaln_part ;k++){
                         float time_omp2 = time_span.count();
                         //---------------------------------------------------------------------------
                         //test omp
+                        printf("atomic\n");
                         t1 = chrono::high_resolution_clock::now();
                         omp_set_num_threads(4);
                         atomic(seed, ncside,n_part,ntstep);
