@@ -116,8 +116,8 @@ void atomic(long seed,unsigned int ncside,size_t n_part, unsigned int ntstep)
     double total_mass = 0.0, TotalCenter_x = 0.0, TotalCenter_y = 0.0;
 
     // Update global CoM and total mass
-    #pragma omp parallel for reduction (n_cell > 100) (+ \
-                                   : TotalCenter_x, TotalCenter_y, total_mass)
+    #pragma omp parallel for if (n_cell > 100) reduction(+ \
+                                                    : TotalCenter_x, TotalCenter_y, total_mass)
         for (size_t j = 0; j < n_cell; j++)
         {
             // Calculate info of each cell
