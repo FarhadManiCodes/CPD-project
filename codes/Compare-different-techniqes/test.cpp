@@ -8,7 +8,6 @@
 #include "simpar.h"
 #include "simpar-omp.h"
 #include "simpar-omp-reduction.h"
-#include "simpar-omp-reduction-2.h"
 #include "simpar-omp-atomic.h"
 
 #include <ratio>
@@ -19,8 +18,8 @@ int main()
 {
         ofstream myfile;
         int totalseed = 5;
-        int totalncside = 7;
-        int totaln_part = 10;
+        int totalncside = 8;
+        int totaln_part = 24;
         int totalntstep = 1;
         myfile.open("time.txt", ios::trunc);
         printf("Test started\n");
@@ -38,9 +37,9 @@ int main()
                                 float av_omp2_time = 0.0;
                                 float av_omp4_time = 0.0;
                                 //---------------------------------------------------------------------------
-                                size_t n_part = 100000 * pow(2, k);
-                                unsigned int ncside = 10*pow(2, j);
-                                unsigned int ntstep = 10;
+                                size_t n_part = 10 * pow(2, k);
+                                unsigned int ncside = 4 * pow(2, j);
+                                unsigned int ntstep = 20;
                                 printf("----------------------------------------------------------\n");
                                 for (unsigned int s = 0; s < totalseed; s++)
                                 {
@@ -55,10 +54,10 @@ int main()
                                         float time_serial = time_span.count();
 
                                         //test omp
-                                        printf("manual\n");
-                                        t1 = chrono::high_resolution_clock::now();
+                                        //printf("manual\n");
                                         omp_set_num_threads(4);
-                                        manual(seed, ncside, n_part, ntstep);
+                                        t1 = chrono::high_resolution_clock::now();
+                                        //manual(seed, ncside, n_part, ntstep);
                                         t2 = chrono::high_resolution_clock::now();
                                         time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
                                         float time_omp1 = time_span.count();
@@ -66,17 +65,27 @@ int main()
                                         //test omp
                                         //printf("reduction\n");
                                         t1 = chrono::high_resolution_clock::now();
-                                        omp_set_num_threads(4);
+                                        //omp_set_num_threads(4);
                                         //reduction(seed, ncside, n_part, ntstep);
                                         t2 = chrono::high_resolution_clock::now();
                                         time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
                                         float time_omp2 = time_span.count();
                                         //---------------------------------------------------------------------------
                                         //test omp
-                                        printf("atomic\n");
+                                        printf("test omp\n");
                                         t1 = chrono::high_resolution_clock::now();
-                                        omp_set_num_threads(4);
-                                        atomic(seed, ncside, n_part, ntstep);
+                                        if (n_part / (ncside * ncside) > 5)
+                                        {
+                                                if (ncside < 150)
+                                                        reduction(seed, ncside, n_part, ntstep);
+
+                                                else
+                                                        manual(seed, ncside, n_part, ntstep);
+                                        }
+                                        else
+                                        {
+                                                atomic(seed, ncside, n_part, ntstep);
+                                        }
                                         t2 = chrono::high_resolution_clock::now();
                                         time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
                                         float time_omp4 = time_span.count();
